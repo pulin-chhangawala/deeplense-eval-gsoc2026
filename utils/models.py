@@ -1,5 +1,5 @@
 """
-models.py   -   DeepLense GSoC 2026 Evaluation Tasks
+models.py  (DeepLense GSoC 2026 Evaluation Tasks)
 ====================================================
 Model architectures for gravitational lens classification and finding.
 
@@ -74,7 +74,7 @@ class LensClassifierEffNet(nn.Module):
     Parameters
     ----------
     num_classes : int   Number of output classes (default: 3).
-    in_channels : int   Input channels  -  1 (single band) or 3 (multi-band).
+    in_channels : int   Input channels; 1 for single band, 3 for multi-band.
     pretrained  : bool  Load ImageNet pretrained weights.
     dropout     : float Dropout probability in the classifier head.
     """
