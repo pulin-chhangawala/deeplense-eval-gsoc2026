@@ -2,7 +2,7 @@
 task2_lens_finding/train.py
 ============================
 Training script for binary gravitational lens detection.
-Handles severe class imbalance (≈ 16–100:1 neg:pos) via:
+Handles severe class imbalance (≈ 16-100:1 neg:pos) via:
   • Focal loss (down-weights easy negatives)
   • Weighted random sampling (balanced batches)
   • ROC-optimal threshold search at test time
@@ -21,7 +21,7 @@ Usage
 -----
   python train.py --data-dir /path/to/dataset --epochs 30
 
-Models handle ImageNet normalisation internally — feed raw [0, 1] tensors.
+Models handle ImageNet normalisation internally  -  feed raw [0, 1] tensors.
 """
 
 import argparse
@@ -204,7 +204,7 @@ def find_optimal_threshold(probs, labels):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Task 2 — Binary lens finding")
+    p = argparse.ArgumentParser(description="Task 2  -  Binary lens finding")
     p.add_argument("--data-dir",     type=str, required=True)
     p.add_argument("--epochs",       type=int, default=30)
     p.add_argument("--batch-size",   type=int, default=32)
@@ -248,7 +248,7 @@ def main():
     args.in_channels  = sample_tensor.shape[0]
     print(f"  Input shape: {tuple(sample_tensor.shape)}")
 
-    # Weighted sampling — balance positive / negative in each batch
+    # Weighted sampling  -  balance positive / negative in each batch
     labels = [l for _, l in train_ds.samples]
     n_neg, n_pos = labels.count(0), labels.count(1)
     w = [1.0 / n_neg if l == 0 else 1.0 / n_pos for l in labels]
@@ -347,7 +347,7 @@ def main():
     print(f"\nTest AUROC: {test_metrics['auroc']:.4f}  "
           f"| AUPRC: {test_metrics['auprc']:.4f}  "
           f"| F1 @ thr={opt_threshold:.3f}: {test_metrics['f1']:.4f}")
-    print(f"Confusion — TP:{test_metrics['tp']} FP:{test_metrics['fp']} "
+    print(f"Confusion  -  TP:{test_metrics['tp']} FP:{test_metrics['fp']} "
           f"FN:{test_metrics['fn']} TN:{test_metrics['tn']}")
 
     results = {

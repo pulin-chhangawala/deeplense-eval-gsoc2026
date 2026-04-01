@@ -4,9 +4,9 @@ task1_classification/train.py
 Training script for multi-class strong gravitational lensing classification.
 
 Classes:
-  0 — No substructure   (folder: "no")
-  1 — CDM subhalo       (folder: "sphere")
-  2 — WDM / axion       (folder: "vort")
+  0  -  No substructure   (folder: "no")
+  1  -  CDM subhalo       (folder: "sphere")
+  2  -  WDM / axion       (folder: "vort")
 
 Usage
 -----
@@ -24,7 +24,7 @@ Dataset layout::
       no/ sphere/ vort/
 
 Each .npy file is a (H, W) or (C, H, W) float32/float64 array in [0, 1].
-Models handle ImageNet normalisation internally — no extra transform needed.
+Models handle ImageNet normalisation internally  -  no extra transform needed.
 """
 
 import argparse
@@ -243,7 +243,7 @@ def compute_per_class_auc(probs, labels, n_classes=3):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Task 1 — Multi-class lens classification")
+    p = argparse.ArgumentParser(description="Task 1  -  Multi-class lens classification")
     p.add_argument("--data-dir",     type=str, required=True)
     p.add_argument("--epochs",       type=int, default=50)
     p.add_argument("--batch-size",   type=int, default=64)
@@ -333,7 +333,7 @@ def main():
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model: {args.model}  |  Trainable params: {n_params:,}")
 
-    # ── Optimiser — differential LR for backbone vs head ──────────────
+    # ── Optimiser  -  differential LR for backbone vs head ──────────────
     criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
 
     if hasattr(model, "get_param_groups"):

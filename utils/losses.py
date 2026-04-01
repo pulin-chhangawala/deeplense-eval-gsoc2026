@@ -1,5 +1,5 @@
 """
-utils/losses.py — Custom loss functions for imbalanced lensing datasets.
+utils/losses.py  -  Custom loss functions for imbalanced lensing datasets.
 """
 import torch
 import torch.nn as nn
