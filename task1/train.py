@@ -265,7 +265,7 @@ def parse_args():
     p.add_argument("--tta",          action="store_true",
                    help="Use test-time augmentation at evaluation")
     p.add_argument("--num-workers",  type=int, default=4)
-    p.add_argument("--save-dir",     type=str, default="checkpoints/task1")
+    p.add_argument("--save-dir",     type=str, default="task1/checkpoints")
     p.add_argument("--seed",         type=int, default=42)
     return p.parse_args()
 

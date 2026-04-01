@@ -221,7 +221,7 @@ def parse_args():
     p.add_argument("--no-amp",       action="store_true")
     p.add_argument("--tta",          action="store_true")
     p.add_argument("--num-workers",  type=int, default=4)
-    p.add_argument("--save-dir",     type=str, default="checkpoints/task2")
+    p.add_argument("--save-dir",     type=str, default="task5/checkpoints")
     p.add_argument("--seed",         type=int, default=42)
     return p.parse_args()
 

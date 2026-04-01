@@ -1,11 +1,15 @@
 # Data directories (large, excluded from repo)
+task1/data/
+task5/data/
 task1_data/
 task2_data/
 test1_dataset.zip
 test5_dataset.zip
 temp_test1/
 
-# Training artifacts
+# Training artifacts — exclude large model weights, keep results
+task1/checkpoints/*.pt
+task5/checkpoints/*.pt
 checkpoints/
 logs/
 *.out
