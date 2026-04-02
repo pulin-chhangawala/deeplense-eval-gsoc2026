@@ -209,7 +209,9 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
 
     device  = torch.device("cpu" if args.no_cuda or not torch.cuda.is_available() else "cuda")
-    use_amp = device.type == "cuda" and not args.no_amp
+    # FNO uses rfft2 which requires float32; cuFFT rejects float16 on non-power-of-2
+    # sizes (150x150), so AMP is always disabled for this model.
+    use_amp = False
     print(f"Host: {os.uname().nodename}")
     print(f"Device: {device}  |  AMP: {use_amp}")
 
