@@ -17,6 +17,9 @@ checkpoints/
 logs/
 *.out
 *.err
+train_*.log
+pymp-*/
+torchinductor_*/
 
 # Python
 __pycache__/
