@@ -13,6 +13,7 @@ task4/checkpoints/*.pt
 task5/checkpoints/*.pt
 task7/checkpoints/*.pt
 checkpoints/
+!**/checkpoints/results.json
 logs/
 *.out
 *.err
