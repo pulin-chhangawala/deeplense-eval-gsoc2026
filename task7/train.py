@@ -110,7 +110,7 @@ def get_sample_weights(dataset):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def train_one_epoch(model, loader, optimizer, criterion, device,
-                    lambda_phys=0.1, mixup_alpha=0.2, scaler=None):
+                    scheduler, lambda_phys=0.1, mixup_alpha=0.2, scaler=None):
     model.train()
     total_loss, cls_loss_sum, phys_loss_sum = 0.0, 0.0, 0.0
     correct, total = 0, 0
@@ -146,6 +146,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device,
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
+        scheduler.step()
         total_loss    += loss.item()     * imgs.size(0)
         cls_loss_sum  += cls_loss.item() * imgs.size(0)
         phys_loss_sum += phys_loss.item()* imgs.size(0)
@@ -299,9 +300,8 @@ def main():
         t0 = time.time()
         tr_loss, tr_cls, tr_phys, tr_acc = train_one_epoch(
             model, train_loader, optimizer, criterion, device,
-            lambda_phys=args.lambda_phys, mixup_alpha=args.mixup_alpha, scaler=scaler,
+            scheduler, lambda_phys=args.lambda_phys, mixup_alpha=args.mixup_alpha, scaler=scaler,
         )
-        scheduler.step()
         val_loss, val_acc, val_probs, val_labels = evaluate(
             model, val_loader, criterion, device, tta=False
         )
