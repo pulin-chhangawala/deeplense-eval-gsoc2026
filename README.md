@@ -1,4 +1,4 @@
-# DeepLense GSoC 2026 — Evaluation Tasks
+# DeepLense GSoC 2026: Evaluation Tasks
 
 Evaluation submissions for **ML4Sci / DeepLense** GSoC 2026.
 All tasks use strong gravitational lensing images from the ML4Sci evaluation dataset.
@@ -28,9 +28,9 @@ task1_data/  Shared dataset used by tasks 1, 4, and 7
 ```
 
 Each task directory contains:
-- `train.py` — standalone training script with CLI arguments
-- `*.ipynb` — notebook walkthrough with explanations, training code, and result plots
-- `checkpoints/results.json` — final metrics from the training run
+- `train.py`: standalone training script with CLI arguments
+- `*.ipynb`: notebook walkthrough with explanations, training code, and result plots
+- `checkpoints/results.json`: final metrics from the training run
 
 ---
 

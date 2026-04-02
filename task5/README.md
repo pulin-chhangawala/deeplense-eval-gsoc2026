@@ -1,6 +1,6 @@
-# Task 5 — Lens Finding with Class Imbalance
+# Task 5: Lens Finding with Class Imbalance
 
-Binary classification: does this image contain a strong gravitational lens or not? The dataset is severely imbalanced — roughly 1 lens per 100 non-lens images — making naive training collapse to predicting the majority class.
+Binary classification: does this image contain a strong gravitational lens or not? The dataset is severely imbalanced, with roughly 1 lens for every 100 non-lens images. If you train naively on this, the model quickly learns to just predict "not a lens" every time and still gets 99% accuracy while being completely useless.
 
 ---
 
@@ -21,21 +21,21 @@ Full per-epoch history in `checkpoints/results.json`.
 
 ## Approach
 
-**Model:** EfficientNet-B3 pretrained on ImageNet, with a binary classification head. Input images are 3-channel (the dataset provides color images unlike Task 1).
+**Model:** EfficientNet-B3 pretrained on ImageNet, with a binary classification head. Input images are 3-channel (the dataset provides color images, unlike Task 1).
 
-**Handling imbalance — two complementary strategies:**
+**Handling imbalance: two complementary strategies**
 
-1. **Focal loss** (alpha=0.25, gamma=2.5): down-weights the loss contribution from easy negatives so the model focuses on hard positives. This prevents the gradient from being dominated by the overwhelming majority class.
+1. **Focal loss** (alpha=0.25, gamma=2.5): a modification to standard cross-entropy that down-weights the gradient contribution from easy negatives (images the model already correctly identifies as non-lenses). This forces the model to focus its learning on the rare positive examples that are actually hard to get right.
 
-2. **WeightedRandomSampler**: oversamples the minority class during batch construction so each mini-batch has a more balanced mix, stabilizing early training.
+2. **WeightedRandomSampler**: oversamples lenses during batch construction so each mini-batch has a more balanced mix of lenses and non-lenses. This stabilizes early training before focal loss has had a chance to take effect.
 
-**Threshold selection:** The standard 0.5 probability cutoff is inappropriate for imbalanced data. The optimal threshold is chosen by maximizing F1 on the validation set across the full ROC curve.
+**Threshold selection:** The standard 0.5 probability cutoff makes no sense when classes are 100:1 imbalanced. Instead, the optimal threshold is chosen by sweeping the full ROC curve on the validation set and picking the point that maximizes F1 score.
 
 **Training details:**
 - Differential learning rates: backbone at 5e-5, head at 3e-4
-- OneCycleLR scheduler (stepped per batch)
+- OneCycleLR scheduler, stepped once per batch
 - Mixed precision (AMP)
-- Test-time augmentation: 6 flips/rotations
+- Test-time augmentation across 6 flips/rotations
 - 30 epochs, batch size 32
 
 ---

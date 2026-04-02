@@ -7,7 +7,7 @@ test1_dataset.zip
 test5_dataset.zip
 temp_test1/
 
-# Training artifacts — exclude large model weights, keep results
+# Training artifacts: exclude large model weights, keep results
 task1/checkpoints/*.pt
 task4/checkpoints/*.pt
 task5/checkpoints/*.pt
