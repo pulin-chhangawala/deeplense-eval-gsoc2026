@@ -55,7 +55,7 @@ python task7/train.py --data-dir task1_data --epochs 50 --tta
 ```
 
 All scripts accept `--help` for full argument listings.
-Training was run on a single NVIDIA A5000 via Slurm on `rlab6.cs.rutgers.edu`.
+Training was run on a single NVIDIA A5000.
 
 ---
 
