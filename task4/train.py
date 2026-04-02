@@ -269,7 +269,7 @@ def main():
         print(f"Epoch {epoch:3d}/{args.epochs} | "
               f"Train loss {tr_loss:.4f} acc {tr_acc:.4f} | "
               f"Val loss {val_loss:.4f} acc {val_acc:.4f} AUC {val_auc:.4f} | "
-              f"LR {lr_now:.2e} | {elapsed:.1f}s")
+              f"LR {lr_now:.2e} | {elapsed:.1f}s", flush=True)
         history.append({"epoch": epoch, "train_loss": tr_loss, "train_acc": tr_acc,
                          "val_loss": val_loss, "val_acc": val_acc, "val_auc": float(val_auc)})
 

@@ -313,7 +313,8 @@ def main():
             f"Epoch {epoch:3d}/{args.epochs} | "
             f"Train loss {tr_loss:.4f} (cls {tr_cls:.4f} phys {tr_phys:.4f}) acc {tr_acc:.4f} | "
             f"Val loss {val_loss:.4f} acc {val_acc:.4f} AUC {val_auc:.4f} | "
-            f"LR {cur_lrs[0]:.2e}/{cur_lrs[-1]:.2e} | {elapsed:.1f}s"
+            f"LR {cur_lrs[0]:.2e}/{cur_lrs[-1]:.2e} | {elapsed:.1f}s",
+            flush=True,
         )
         history.append({
             "epoch": epoch, "train_loss": tr_loss, "train_cls_loss": tr_cls,
