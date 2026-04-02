@@ -101,7 +101,7 @@ def get_sample_weights(dataset):
 #  Training / evaluation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def train_one_epoch(model, loader, optimizer, criterion, device, scaler=None):
+def train_one_epoch(model, loader, optimizer, criterion, device, scheduler, scaler=None):
     model.train()
     total_loss, correct, total = 0.0, 0, 0
     for imgs, labels in loader:
@@ -120,6 +120,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device, scaler=None):
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
+        scheduler.step()
         total_loss += loss.item() * imgs.size(0)
         correct    += (logits.argmax(1) == labels).sum().item()
         total      += imgs.size(0)
@@ -259,8 +260,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
-        tr_loss, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
-        scheduler.step()
+        tr_loss, tr_acc = train_one_epoch(model, train_loader, optimizer, criterion, device, scheduler, scaler)
         val_loss, val_acc, val_probs, val_labels = evaluate(model, val_loader, criterion, device)
         val_auc = compute_roc_auc(val_probs, val_labels)
         elapsed = time.time() - t0
