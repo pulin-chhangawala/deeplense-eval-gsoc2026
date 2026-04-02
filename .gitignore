@@ -9,7 +9,9 @@ temp_test1/
 
 # Training artifacts — exclude large model weights, keep results
 task1/checkpoints/*.pt
+task4/checkpoints/*.pt
 task5/checkpoints/*.pt
+task7/checkpoints/*.pt
 checkpoints/
 logs/
 *.out

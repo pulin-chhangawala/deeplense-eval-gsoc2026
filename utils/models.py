@@ -329,3 +329,227 @@ class LightweightLensCNN(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.classifier(self.features(x))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Task 4: Fourier Neural Operator classifier
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SpectralConv2d(nn.Module):
+    """
+    2-D spectral convolution via FFT (core FNO building block).
+    Learns weights in the Fourier domain for the lowest `modes` frequencies.
+    """
+    def __init__(self, in_ch: int, out_ch: int, modes1: int, modes2: int):
+        super().__init__()
+        self.in_ch  = in_ch
+        self.out_ch = out_ch
+        self.modes1 = modes1
+        self.modes2 = modes2
+        scale = 1.0 / (in_ch * out_ch)
+        self.weight_re = nn.Parameter(scale * torch.randn(in_ch, out_ch, modes1, modes2))
+        self.weight_im = nn.Parameter(scale * torch.randn(in_ch, out_ch, modes1, modes2))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, C, H, W = x.shape
+        x_ft  = torch.fft.rfft2(x, norm="ortho")
+        weight = torch.complex(self.weight_re, self.weight_im)
+        out_ft = torch.zeros(B, self.out_ch, H, W // 2 + 1,
+                             dtype=torch.cfloat, device=x.device)
+        out_ft[:, :, :self.modes1, :self.modes2] = torch.einsum(
+            "bixy,ioxy->boxy",
+            x_ft[:, :, :self.modes1, :self.modes2],
+            weight,
+        )
+        return torch.fft.irfft2(out_ft, s=(H, W), norm="ortho")
+
+
+class FNOBlock(nn.Module):
+    """Single FNO layer: spectral conv + pointwise bypass + activation."""
+    def __init__(self, channels: int, modes1: int, modes2: int):
+        super().__init__()
+        self.spectral = SpectralConv2d(channels, channels, modes1, modes2)
+        self.bypass   = nn.Conv2d(channels, channels, kernel_size=1)
+        self.norm     = nn.InstanceNorm2d(channels, affine=True)
+        self.act      = nn.GELU()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.act(self.norm(self.spectral(x) + self.bypass(x)))
+
+
+class FNOClassifier(nn.Module):
+    """
+    Fourier Neural Operator for multi-class lensing classification.
+    Operates entirely in function space via spectral convolutions (no pretrained
+    backbone), making it architecture-family-distinct from all EfficientNet models.
+
+    Parameters
+    ----------
+    in_channels : int   Input channels (1 for grayscale Task 1 images).
+    num_classes : int   Number of output classes.
+    hidden      : int   Channel width throughout the FNO layers.
+    modes       : int   Number of Fourier modes kept per spatial dimension.
+    n_layers    : int   Number of stacked FNO blocks.
+    """
+    def __init__(
+        self,
+        in_channels: int = 1,
+        num_classes: int = 3,
+        hidden: int = 64,
+        modes: int = 16,
+        n_layers: int = 4,
+    ):
+        super().__init__()
+        self.lift   = nn.Conv2d(in_channels, hidden, kernel_size=1)
+        self.blocks = nn.Sequential(*[FNOBlock(hidden, modes, modes)
+                                       for _ in range(n_layers)])
+        self.project = nn.Sequential(
+            nn.Conv2d(hidden, 128, kernel_size=1),
+            nn.GELU(),
+        )
+        self.head = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Dropout(0.4),
+            nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.lift(x)
+        x = self.blocks(x)
+        x = self.project(x)
+        return self.head(x)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Task 7: Physics-guided EfficientNet (PINN)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LensingLayer(nn.Module):
+    """
+    Differentiable SIS (Singular Isothermal Sphere) gravitational lensing forward
+    model. Given predicted lens parameters it computes a reconstructed lensed image
+    that can be compared to the observed input via a physics residual loss.
+
+    Lensing equation: beta = theta - alpha(theta)
+    SIS deflection:   alpha = theta_E * theta / |theta|
+
+    The source is modelled as a 2-D Gaussian parametrized by the network.
+    """
+    def __init__(self, img_size: int = 150):
+        super().__init__()
+        coords = torch.linspace(-1.0, 1.0, img_size)
+        xx, yy = torch.meshgrid(coords, coords, indexing="xy")
+        self.register_buffer("xx", xx)   # (H, W)
+        self.register_buffer("yy", yy)
+
+    def forward(
+        self,
+        theta_E:   torch.Tensor,   # (B,)  Einstein radius in coord units
+        src_x:     torch.Tensor,   # (B,)  source centroid x
+        src_y:     torch.Tensor,   # (B,)  source centroid y
+        src_sigma: torch.Tensor,   # (B,)  source Gaussian width
+    ) -> torch.Tensor:
+        B = theta_E.shape[0]
+        xx = self.xx.unsqueeze(0).expand(B, -1, -1)   # (B, H, W)
+        yy = self.yy.unsqueeze(0).expand(B, -1, -1)
+
+        r       = torch.sqrt(xx ** 2 + yy ** 2 + 1e-6)
+        alpha_x = theta_E.view(B, 1, 1) * xx / r
+        alpha_y = theta_E.view(B, 1, 1) * yy / r
+
+        beta_x = xx - alpha_x   # source-plane x
+        beta_y = yy - alpha_y   # source-plane y
+
+        sx  = src_x.view(B, 1, 1)
+        sy  = src_y.view(B, 1, 1)
+        sig = src_sigma.view(B, 1, 1)
+
+        source = torch.exp(
+            -((beta_x - sx) ** 2 + (beta_y - sy) ** 2) / (2.0 * sig ** 2 + 1e-8)
+        )
+        return source.unsqueeze(1)   # (B, 1, H, W)
+
+
+class PhysicsGuidedEffNet(nn.Module):
+    """
+    Physics-informed classifier built on EfficientNet-B3.
+
+    Two heads share the backbone:
+      - Classification head: standard 3-class softmax output.
+      - Physics head: predicts SIS lens parameters [theta_E, src_x, src_y, src_sigma].
+        These are fed into a differentiable lensing layer that reconstructs the
+        observed image. The reconstruction error acts as a physics residual loss
+        that regularises training with knowledge of the gravitational lensing equation.
+
+    At inference only the classification logits are used.
+    """
+    def __init__(
+        self,
+        in_channels: int = 1,
+        num_classes: int = 3,
+        img_size:    int = 150,
+        pretrained:  bool = True,
+        dropout:     float = 0.4,
+    ):
+        super().__init__()
+        weights   = models.EfficientNet_B3_Weights.DEFAULT if pretrained else None
+        backbone  = models.efficientnet_b3(weights=weights)
+
+        if in_channels != 3:
+            backbone.features[0][0] = _adapt_first_conv(
+                backbone.features[0][0], in_channels
+            )
+
+        in_features = backbone.classifier[1].in_features
+        backbone.classifier = nn.Identity()
+        self.backbone = backbone
+
+        m, s = _imagenet_buffers(in_channels)
+        self.register_buffer("_norm_mean", m)
+        self.register_buffer("_norm_std",  s)
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=dropout),
+            nn.Linear(in_features, num_classes),
+        )
+        self.physics_head = nn.Sequential(
+            nn.Linear(in_features, 64),
+            nn.GELU(),
+            nn.Linear(64, 4),
+        )
+        self.lensing = LensingLayer(img_size=img_size)
+
+    def forward(self, x: torch.Tensor):
+        feat   = self.backbone((x - self._norm_mean) / self._norm_std)
+        logits = self.classifier(feat)
+
+        raw      = self.physics_head(feat)
+        theta_E  = 0.40 * torch.sigmoid(raw[:, 0])
+        src_x    = 0.40 * torch.tanh(raw[:, 1])
+        src_y    = 0.40 * torch.tanh(raw[:, 2])
+        src_sigma = 0.05 + 0.25 * torch.sigmoid(raw[:, 3])
+
+        reconstructed = self.lensing(theta_E, src_x, src_y, src_sigma)
+        return logits, reconstructed
+
+    @torch.no_grad()
+    def predict(self, x: torch.Tensor) -> torch.Tensor:
+        logits, _ = self.forward(x)
+        return logits
+
+    def get_param_groups(
+        self, lr_backbone: float = 5e-5, lr_head: float = 3e-4
+    ) -> list[dict]:
+        head_ids = (
+            {id(p) for p in self.classifier.parameters()} |
+            {id(p) for p in self.physics_head.parameters()}
+        )
+        backbone_params = [p for p in self.backbone.parameters()
+                           if id(p) not in head_ids]
+        head_params = (list(self.classifier.parameters()) +
+                       list(self.physics_head.parameters()))
+        return [
+            {"params": backbone_params, "lr": lr_backbone},
+            {"params": head_params,     "lr": lr_head},
+        ]
